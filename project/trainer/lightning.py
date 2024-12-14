@@ -1,11 +1,12 @@
 from lightning import LightningModule
 from project.trainer.metrics import ao_exact_score
-from bitsandbytes.optim import Adam8bit
+from deepspeed.ops.adam import DeepSpeedCPUAdam
 
 
 class VideoLlavaModelPLModule(LightningModule):
     def __init__(self, config, processor, model):
         super().__init__()
+        self.save_hyperparameters()
         self.config = config
         self.processor = processor
         self.model = model
@@ -58,7 +59,8 @@ class VideoLlavaModelPLModule(LightningModule):
 
     def configure_optimizers(self):
         # use 8 bit optimizer
-        optimizer = Adam8bit(self.parameters(), min_8bit_size=4096, lr=self.config.get("lr"))
+        # optimizer = Adam8bit(self.parameters(), min_8bit_size=4096, lr=self.config.get("lr"))
+        optimizer = DeepSpeedCPUAdam(self.parameters(), lr=2e-5)
         # optimizer = torch.optim.AdamW(self.parameters(), lr=self.config.get("lr"))
 
         return optimizer

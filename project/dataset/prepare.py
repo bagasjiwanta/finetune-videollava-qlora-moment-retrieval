@@ -7,8 +7,6 @@ import numpy as np
 from decord import VideoReader, cpu
 import logging 
 
-logger = logging.getLogger(__name__)
-
 class DatasetPreparer():
 
     def __init__(self,     
@@ -148,6 +146,7 @@ class DatasetPreparer():
 
 
     def download_videos(self, dataset, split):
+        logger = logging.getLogger(__name__)
         video_ids = set(dataset['train']['video_id'] + dataset['validation']['video_id'] + dataset['test']['video_id'])
         target_dir = f"{self.base_dir}/videos/{split}"
         
@@ -190,6 +189,8 @@ class DatasetPreparer():
             use_frame (`bool`): whether to use frame prompts on moment_retrieval
             mr_max_actions (`int`): how many actions to download on moment_retrieval
         '''
+        logger = logging.getLogger(__name__)
+        
         set_verbosity_error()
         ds = load_dataset(self.repo_id, split).sort("complexity")
         self.download_videos(ds, split)
