@@ -13,7 +13,8 @@ class DatasetPreparer():
         base_dir: str = "dataset",
         processed_dir: str = "processed",
         processor = None,
-        num_frames = 14
+        num_frames = 14,
+        num_worker = 1
     ):
         r'''
         Parameters:
@@ -26,6 +27,7 @@ class DatasetPreparer():
         self.processed_dir = processed_dir
         self.processor = processor
         self.num_frames = num_frames # default value
+        self.num_worker = 1
 
 
     def read_video_decord(self, video_path):
@@ -193,7 +195,7 @@ class DatasetPreparer():
         print("info: collating")
         if split == "action_ordering_v2":
             removed_columns = ['video_id', 'duration', 'captions_starts', 'captions_ends', 'question_normal', 'question_robust', 'answer', 'complexity']
-            default_kwargs = {"batched": False, "num_proc": 4, "writer_batch_size": 400, "remove_columns": removed_columns}
+            default_kwargs = {"batched": False, "num_proc": self.num_worker, "writer_batch_size": 400, "remove_columns": removed_columns}
 
             ds['train'] = ds['train'].map(
                 self.pre_collate_ao_v2,
@@ -215,7 +217,7 @@ class DatasetPreparer():
 
         else:
             removed_columns = ['video_id', 'duration', 'prompt_frame', 'prompt_timestamp', 'complexity', 'answers', 'actions']
-            default_kwargs = {"batched": False, "num_proc": 4, "writer_batch_size": 400, "remove_columns": removed_columns}
+            default_kwargs = {"batched": False, "num_proc": self.num_worker, "writer_batch_size": 400, "remove_columns": removed_columns}
             self.processor.tokenizer.padding_side = "right"
             ds_pool = [
                 load_dataset(self.repo_id, split).sort('complexity').filter(lambda e: len(e['answers']) >= i) for i in range(1, mr_max_actions+1)

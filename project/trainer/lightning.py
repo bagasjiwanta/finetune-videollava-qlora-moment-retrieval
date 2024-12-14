@@ -1,9 +1,9 @@
-import lightning as L
-import bitsandbytes as bnb
+from lightning import LightningModule
 from project.trainer.metrics import ao_exact_score
+from bitsandbytes.optim import Adam8bit
 
 
-class VideoLlavaModelPLModule(L.LightningModule):
+class VideoLlavaModelPLModule(LightningModule):
     def __init__(self, config, processor, model):
         super().__init__()
         self.config = config
@@ -58,7 +58,7 @@ class VideoLlavaModelPLModule(L.LightningModule):
 
     def configure_optimizers(self):
         # use 8 bit optimizer
-        optimizer = bnb.optim.Adam8bit(self.parameters(), min_8bit_size=16384, lr=self.config.get("lr"))
+        optimizer = Adam8bit(self.parameters(), min_8bit_size=4096, lr=self.config.get("lr"))
         # optimizer = torch.optim.AdamW(self.parameters(), lr=self.config.get("lr"))
 
         return optimizer
