@@ -3,6 +3,8 @@
 **/.ipynb_checkpoints/*
 **/processed/*
 **/.cache/*
+**/checkpoints/*
+datasets/
 logs.*
 test/
 

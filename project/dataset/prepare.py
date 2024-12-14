@@ -13,6 +13,7 @@ class DatasetPreparer():
         base_dir: str = "dataset",
         processed_dir: str = "processed",
         processor = None,
+        num_frames = 14
     ):
         r'''
         Parameters:
@@ -24,7 +25,7 @@ class DatasetPreparer():
         self.base_dir = base_dir
         self.processed_dir = processed_dir
         self.processor = processor
-        self.num_frames = 14 # default value
+        self.num_frames = num_frames # default value
 
 
     def read_video_decord(self, video_path):
@@ -111,14 +112,20 @@ class DatasetPreparer():
                 ed_found = True
         
         if not ed_found:
-            ed = self.num_frames
             if not use_frame:
-                ed = self.to_str_timestamp(indices[ed-1])
+                ed = self.to_str_timestamp(indices[self.num_frames - 1])
+            else:
+                ed = self.num_frames
         if not st_found:
-            st = 1 
             if not use_frame:
-                st = self.to_str_timestamp(indices[st-1])
+                st = self.to_str_timestamp(indices[0])
+            else:
+                st = 1
         
+        if use_frame:
+            st = str(st)
+            ed = str(ed)
+
         if train:
             prompt += ', '.join([st, ed])
 
@@ -209,30 +216,35 @@ class DatasetPreparer():
         else:
             removed_columns = ['video_id', 'duration', 'prompt_frame', 'prompt_timestamp', 'complexity', 'answers', 'actions']
             default_kwargs = {"batched": False, "num_proc": 4, "writer_batch_size": 400, "remove_columns": removed_columns}
-            fn_kwargs = {"train": True, "use_frame": use_frame, "mr_max_actions": mr_max_actions}
             self.processor.tokenizer.padding_side = "right"
             ds_pool = [
-                load_dataset(self.repo_id, split).sort('complexity').filter(lambda e: len(e['answers']) == i) for i in range(1, mr_max_actions+1)
+                load_dataset(self.repo_id, split).sort('complexity').filter(lambda e: len(e['answers']) >= i) for i in range(1, mr_max_actions+1)
             ]
+            print(ds_pool)
+
+            for i in range(len(ds_pool)):
+                fn_kwargs = {"train": True, "use_frame": use_frame, "mr_max_actions": i + 1}
+
+                ds_pool[i]['train'] = ds_pool[i]['train'].map(
+                    self.pre_collate_mr_v2, fn_kwargs=fn_kwargs, **default_kwargs,
+                ).with_format("torch")
+
+                fn_kwargs['train'] = False
+                ds_pool[i]['validation'] = ds_pool[i]['validation'].map(
+                    self.pre_collate_mr_v2, fn_kwargs=fn_kwargs, **default_kwargs,
+                ).with_format("torch")
+
+                ds_pool[i]['test'] = ds_pool[i]['test'].map(
+                    self.pre_collate_mr_v2, fn_kwargs=fn_kwargs, **default_kwargs,
+                ).with_format("torch")
+
+            print(ds_pool)
 
             ds = DatasetDict({
                 "train": concatenate_datasets([d['train'] for d in ds_pool]),
-                "test": concatenate_datasets(d['test'] for d in ds_pool),
+                "test": concatenate_datasets([d['test'] for d in ds_pool]),
                 "validation": concatenate_datasets([d['validation'] for d in ds_pool])
             })
-            
-            ds['train'] = ds['train'].map(
-                self.pre_collate_mr_v2, fn_kwargs=fn_kwargs, **default_kwargs,
-            ).with_format("torch")
-
-            fn_kwargs['train'] = False
-            ds['validation'] = ds['validation'].map(
-                self.pre_collate_mr_v2, fn_kwargs=fn_kwargs, **default_kwargs,
-            ).with_format("torch")
-
-            ds['test'] = ds['test'].map(
-                self.pre_collate_mr_v2, fn_kwargs=fn_kwargs, **default_kwargs,
-            ).with_format("torch")
 
         if split == 'action_ordering_v2':
             config_name = 'robust' if use_robust else 'normal'
