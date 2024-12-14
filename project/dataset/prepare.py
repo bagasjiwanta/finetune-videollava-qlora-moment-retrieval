@@ -5,7 +5,9 @@ from datasets import load_dataset, load_from_disk, concatenate_datasets, Dataset
 from datasets.utils.logging import set_verbosity_error, set_verbosity_info
 import numpy as np
 from decord import VideoReader, cpu
+import logging 
 
+logger = logging.getLogger(__name__)
 
 class DatasetPreparer():
 
@@ -156,20 +158,20 @@ class DatasetPreparer():
             present_videos = set([d[:-4] for d in os.listdir(target_dir)])
 
         if len(video_ids & present_videos) == len(video_ids):
-            print("info: all videos are present, skip downloading")
+            logger.info("info: all videos are present, skip downloading")
             return
     
         if os.path.isdir(target_dir):
             shutil.rmtree(target_dir) # clean up improper downloads
         
-        print(f"info: downloading videos for {split}")
+        logger.info(f"info: downloading videos for {split}")
         download_path = hf_hub_download(
             self.repo_id, filename=f"videos/{split}.zip", repo_type='dataset', local_dir=self.base_dir
         )
         shutil.unpack_archive(download_path, f"{self.base_dir}/videos/", 'zip')
         os.remove(f"{self.base_dir}/videos/{split}.zip")
 
-        print(f"info: success download at path {target_dir}")
+        logger.info(f"info: success download at path {target_dir}")
 
 
     def prepare_dataset(self, split="action_ordering_v2", use_frame=True, use_robust=False, mr_max_actions=1):
@@ -192,7 +194,7 @@ class DatasetPreparer():
         ds = load_dataset(self.repo_id, split).sort("complexity")
         self.download_videos(ds, split)
 
-        print("info: collating")
+        logger.info("info: collating")
         if split == "action_ordering_v2":
             removed_columns = ['video_id', 'duration', 'captions_starts', 'captions_ends', 'question_normal', 'question_robust', 'answer', 'complexity']
             default_kwargs = {"batched": False, "num_proc": self.num_worker, "writer_batch_size": 400, "remove_columns": removed_columns}
@@ -222,7 +224,7 @@ class DatasetPreparer():
             ds_pool = [
                 load_dataset(self.repo_id, split).sort('complexity').filter(lambda e: len(e['answers']) >= i) for i in range(1, mr_max_actions+1)
             ]
-            print(ds_pool)
+            logger.info(ds_pool)
 
             for i in range(len(ds_pool)):
                 fn_kwargs = {"train": True, "use_frame": use_frame, "mr_max_actions": i + 1}
@@ -240,7 +242,7 @@ class DatasetPreparer():
                     self.pre_collate_mr_v2, fn_kwargs=fn_kwargs, **default_kwargs,
                 ).with_format("torch")
 
-            print(ds_pool)
+            logger.info(ds_pool)
 
             ds = DatasetDict({
                 "train": concatenate_datasets([d['train'] for d in ds_pool]),
@@ -254,7 +256,7 @@ class DatasetPreparer():
             config_name = 'frame' if use_frame else 'timestamp'
 
         save_dir = f'{self.base_dir}/{self.processed_dir}/{split}/{config_name}/{str(self.num_frames)}_frames'
-        print(f'info: saving dataset to {save_dir}')
+        logger.info(f'info: saving dataset to {save_dir}')
         ds.save_to_disk(save_dir)
         ds = load_from_disk(save_dir)
         set_verbosity_info()
