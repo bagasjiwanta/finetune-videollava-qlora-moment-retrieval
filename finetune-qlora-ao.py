@@ -17,6 +17,12 @@ from lightning import Trainer
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 import argparse
+import logging
+import os
+import sys
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class Config:
@@ -69,9 +75,23 @@ def parse_arguments():
 
 
 if __name__ == "__main__":
+    logger.setLevel(logging.INFO)
+    stream_handler = logging.StreamHandler(sys.stdout)
+
+    if not os.path.isdir("logs"):
+        os.makedirs("logs")
+
+    log_file = f"logs/{str(datetime.now()).replace(' ', '_')}.log"
+    file_handler = logging.FileHandler(log_file)
+
+    log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%m/%d/%Y %H:%M:%S")
+    stream_handler.setFormatter(log_formatter)
+
+    logger.addHandler(stream_handler)
+    logger.addHandler(file_handler)
     args = parse_arguments()
-    print(args)
-    exit()
+
+    logger.info(str(args))
 
     processor = VideoLlavaProcessor.from_pretrained("LanguageBind/Video-LLaVA-7B-hf", use_fast=False)
     processor.patch_size = 14
