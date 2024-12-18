@@ -32,8 +32,8 @@ def mr_iou_score(
     ts_preds, ts_infos, ts_labels = batch_str_ts_to_int_arr(preds, ts_infos, labels)
     span_preds, span_labels = batch_int_arr_to_spans(ts_preds, ts_infos, ts_labels)
     iou, _ = temporal_iou(span_preds, span_labels)
-
-    return torch.diag(iou)
+    
+    return float(torch.diag(iou)), float(torch.diag(iou) * 4)
 
 def mr_giou_score(
         preds: List[str], 

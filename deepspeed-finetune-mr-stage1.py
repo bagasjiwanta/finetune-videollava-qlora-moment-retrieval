@@ -26,9 +26,9 @@ from lightning.pytorch.strategies import DeepSpeedStrategy
 
 @dataclass
 class Config:
-    lora_r: int = 8
-    lora_alpha: int = 16
-    batch_size: int = 2
+    lora_r: int = 16
+    lora_alpha: int = 32
+    batch_size: int = 3
     max_epoch: int = 2
     val_check_interval: float = 0.25
     learning_rate: float = 2e-5
@@ -162,12 +162,12 @@ if __name__ == "__main__":
     limit_val_batches = (args.limit_val_batches // args.batch_size) * args.batch_size
     train_conf = {
         "max_epochs": args.max_epoch,
-        "accumulate_grad_batches": args.accumulate_grad_batches,
+        "accumulate_grad_batches": 1,
         "limit_val_batches": int(limit_val_batches),
         "val_check_interval": args.val_check_interval,
         "precision": "16-mixed",
         "gradient_clip_val": 1.0,
-        "num_sanity_val_steps": Config.limit_val_batches
+        "num_sanity_val_steps": Config.limit_val_batches//8
     }
     logger.info(str(train_conf))
     

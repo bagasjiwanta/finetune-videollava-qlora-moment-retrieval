@@ -467,18 +467,18 @@ class MomentRetrievalDataset:
         self.download_videos(ds)
         removed_columns = ['video_id', 'duration', 'prompt_frame', 'prompt_timestamp', 'action', 'answer']
         default_kwargs = {"batched": False, "num_proc": self.num_worker, "writer_batch_size": 400, "remove_columns": removed_columns}
-        ds['train'] = ds['train'].shuffle(seed=18220053).select(range(50)).map(
+        ds['train'] = ds['train'].shuffle(seed=18220053).map(
             self.pre_collate_mr_ts,
             fn_kwargs={"train": True, "use_frame": use_frame},
             **default_kwargs
         ).with_format('torch')
-        ds['validation'] = ds['validation'].shuffle(seed=18220053).select(range(50)).map(
+        ds['validation'] = ds['validation'].shuffle(seed=18220053).select(range(64)).map(
             self.pre_collate_mr_ts,
             fn_kwargs={"train": False, "use_frame": use_frame},
             **default_kwargs
         ).with_format('torch')
         default_kwargs['remove_columns'] = removed_columns
-        ds['test'] = ds['test'].select(range(50)).map(
+        ds['test'] = ds['test'].map(
             self.pre_collate_mr_ts,
             fn_kwargs={"train": False, "use_frame": use_frame},
             **default_kwargs
