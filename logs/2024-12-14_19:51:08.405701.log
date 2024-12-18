@@ -1,0 +1,1 @@
+{'max_epochs': 2, 'accumulate_grad_batches': 1, 'limit_val_batches': 16, 'val_check_interval': 0.25, 'precision': '16-mixed', 'gradient_clip_val': 1.0, 'num_sanity_val_steps': 8}
