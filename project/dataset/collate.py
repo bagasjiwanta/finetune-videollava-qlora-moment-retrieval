@@ -30,4 +30,5 @@ class DataCollatorWithPadding():
         else:
             labels = [feat['answer'] for feat in features]
 
-        return batch['input_ids'], batch['attention_mask'], pixel_values_videos, labels
+        output = (batch['input_ids'], batch['attention_mask'], pixel_values_videos, labels)
+        return output if not is_eval else output + ([feat['ts_info'] for feat in features],)

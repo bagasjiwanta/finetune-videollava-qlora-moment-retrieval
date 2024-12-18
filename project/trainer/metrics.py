@@ -29,7 +29,6 @@ def mr_iou_score(
         ts_infos: List[List[str]], 
         labels: List[List[str]]
     ):   
-    print(preds, ts_infos, labels)
     ts_preds, ts_infos, ts_labels = batch_str_ts_to_int_arr(preds, ts_infos, labels)
     span_preds, span_labels = batch_int_arr_to_spans(ts_preds, ts_infos, ts_labels)
     iou, _ = temporal_iou(span_preds, span_labels)
