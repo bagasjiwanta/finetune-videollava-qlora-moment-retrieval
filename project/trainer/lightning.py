@@ -1,6 +1,7 @@
 from lightning import LightningModule
-from project.trainer.metrics import ao_exact_score
+from project.trainer.metrics import ao_exact_score, mr_iou_score
 from deepspeed.ops.adam import DeepSpeedCPUAdam
+from torch import Tensor
 
 
 class VideoLlavaModelPLModule(LightningModule):
@@ -11,8 +12,12 @@ class VideoLlavaModelPLModule(LightningModule):
         self.processor = processor
         self.model = model
 
-    def training_step(self, batch):
 
+    def training_step(self, batch):
+        input_ids: Tensor
+        attention_mask: Tensor
+        pixel_values_videos: Tensor
+        labels: Tensor
         input_ids, attention_mask, pixel_values_videos, labels = batch
 
         outputs = self.model(
@@ -27,13 +32,10 @@ class VideoLlavaModelPLModule(LightningModule):
 
         return loss
 
+
     def validation_step(self, batch):
 
         input_ids, attention_mask, pixel_values_videos, labels = batch
-        is_ao = len(labels[0][0]) == 1 
-
-        if not is_ao:
-            frame_info = batch[-1]
 
         # autoregressively generate token IDs
         generated_ids = self.model.generate(
@@ -47,15 +49,19 @@ class VideoLlavaModelPLModule(LightningModule):
         predictions = self.processor.batch_decode(
             generated_ids[:, input_ids.size(1):], 
             skip_special_tokens=True, clean_up_tokenization_spaces=True)
+        
+        is_ao = len(labels[0][0]) == 1 
 
         if is_ao:
             score, correct = ao_exact_score(predictions, labels)
         else:
-            score = 1
-            correct = len(predictions)
+            frame_info = batch[-1]
+            score, correct = mr_iou_score(predictions, frame_info, labels) 
+            
         self.log("val_accuracy", score)
 
         return correct
+
 
     def configure_optimizers(self):
         # use 8 bit optimizer

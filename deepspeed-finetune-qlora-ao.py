@@ -6,7 +6,8 @@ from project.trainer.peft import find_all_linear_names
 from transformers import (
     VideoLlavaProcessor,
     BitsAndBytesConfig,
-    VideoLlavaForConditionalGeneration
+    VideoLlavaForConditionalGeneration,
+    LlamaForCausalLM
 )
 from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model
 from datasets import load_from_disk
@@ -124,6 +125,7 @@ if __name__ == "__main__":
         device_map="auto"
     )
     model.generation_config.max_new_tokens = 40
+    model.config.return_dict = True
 
     lora_config = LoraConfig(
         r=args.lora_r,
