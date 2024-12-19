@@ -2,12 +2,13 @@ from lightning import LightningModule
 from project.trainer.metrics import ao_exact_score, mr_iou_score
 from deepspeed.ops.adam import DeepSpeedCPUAdam
 from torch import Tensor
+from bitsandbytes.optim.adam import Adam8bit
 
 
 class VideoLlavaModelPLModule(LightningModule):
     def __init__(self, config, processor, model):
         super().__init__()
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=["model"])
         self.config = config
         self.processor = processor
         self.model = model
@@ -57,6 +58,7 @@ class VideoLlavaModelPLModule(LightningModule):
         else:
             frame_info = batch[-1]
             score, correct = mr_iou_score(predictions, frame_info, labels) 
+            print(score)
             
         self.log("val_accuracy", score)
 

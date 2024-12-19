@@ -133,7 +133,7 @@ def batch_int_arr_to_spans(
     For model evaluation
     '''
     B = len(ts_infos)
-    print(ts_preds, ts_labels)
+    # print(ts_preds, ts_labels)
     preds, labels = torch.zeros((B,2), dtype=torch.int), torch.zeros((B,2), dtype=torch.int)
     for b in range(B):
         p, l, info = ts_preds[b], ts_labels[b], ts_infos[b]

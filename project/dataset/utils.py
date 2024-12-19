@@ -26,7 +26,7 @@ def display_videos(pixels):
 
     anim = animation.FuncAnimation(fig, animate, init_func=init, frames=video.shape[0],
                                 interval=100)
-    HTML(anim.to_html5_video())
+    display(HTML(anim.to_html5_video()))
 
 
 def display_images_from_video(pixels, frames):

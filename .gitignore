@@ -8,3 +8,4 @@ datasets/
 logs.*
 test/
 
+output/

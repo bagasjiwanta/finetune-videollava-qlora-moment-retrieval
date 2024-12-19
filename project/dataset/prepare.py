@@ -380,9 +380,9 @@ class MomentRetrievalDataset:
 
     def download_videos(self, dataset):
         split = self.split
-        logger = logging.getLogger(__name__)
+        logger = logging.getLogger("__main__")
         video_ids = set(dataset['train']['video_id'] + dataset['validation']['video_id'] + dataset['test']['video_id'])
-        target_dir = f"{self.base_dir}/videos/{split}"
+        target_dir = f"{self.base_dir}/videos/{split}_v2"
         
         if not os.path.isdir(target_dir):
             os.makedirs(target_dir)
@@ -403,14 +403,14 @@ class MomentRetrievalDataset:
         )
         shutil.unpack_archive(download_path, f"{self.base_dir}/videos/", 'zip')
         os.remove(f"{self.base_dir}/videos/{split}.zip")
-
-        logger.info(f"info: success download at path {target_dir}")
+        shutil.move(target_dir, f"{self.base_dir}/videos/{split}")
+        logger.info(f"info: success download at path {self.base_dir}/videos/{split}")
 
 
     def pre_collate_mr_ts(self, e, use_frame=False, train=False):
         # read video
         video_file = e['video_id'] + '.mp4'
-        video_clip, v_ts = self.read_video_decord(f'{self.base_dir}/videos/moment_retrieval/{video_file}')
+        video_clip, v_ts = self.read_video_decord(f'{self.base_dir}/videos/moment_retrieval_v2/{video_file}')
 
         prompt = e['prompt_frame'] if use_frame else e['prompt_timestamp']
         prompt = prompt.replace("<num_frames>", str(self.num_frames))
@@ -467,18 +467,18 @@ class MomentRetrievalDataset:
         self.download_videos(ds)
         removed_columns = ['video_id', 'duration', 'prompt_frame', 'prompt_timestamp', 'action', 'answer']
         default_kwargs = {"batched": False, "num_proc": self.num_worker, "writer_batch_size": 400, "remove_columns": removed_columns}
-        ds['train'] = ds['train'].shuffle(seed=18220053).select(range(50)).map(
+        ds['train'] = ds['train'].shuffle(seed=18220053).select(range(640)).map(
             self.pre_collate_mr_ts,
             fn_kwargs={"train": True, "use_frame": use_frame},
             **default_kwargs
         ).with_format('torch')
-        ds['validation'] = ds['validation'].shuffle(seed=18220053).select(range(50)).map(
+        ds['validation'] = ds['validation'].shuffle(seed=18220053).select(range(48)).map(
             self.pre_collate_mr_ts,
             fn_kwargs={"train": False, "use_frame": use_frame},
             **default_kwargs
         ).with_format('torch')
         default_kwargs['remove_columns'] = removed_columns
-        ds['test'] = ds['test'].select(range(50)).map(
+        ds['test'] = ds['test'].map(
             self.pre_collate_mr_ts,
             fn_kwargs={"train": False, "use_frame": use_frame},
             **default_kwargs
